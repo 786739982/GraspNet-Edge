@@ -10,7 +10,7 @@ import numpy as np
 # change the graspnet_root path
 
 ####################################################################
-graspnet_root = '/data/graspnet' # ROOT PATH FOR GRASPNET
+graspnet_root = '/disk1/graspnet' # ROOT PATH FOR GRASPNET
 ####################################################################
 
 sceneId = 1

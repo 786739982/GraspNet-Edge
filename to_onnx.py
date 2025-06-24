@@ -5,6 +5,8 @@ import numpy as np
 from PIL import Image
 import open3d as o3d
 import IPython
+import scipy.io as scio
+
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 sys.path.append(os.path.join(ROOT_DIR, 'dataset'))
@@ -17,14 +19,12 @@ import functools
 
 def get_and_process_data():
 
-    color = np.array(Image.open('/root/Workspace/humanoid/tsinghua/graspnet-baseline/doc/bottle/bottle.png'), dtype=np.float32) / 255.0
-    depth = np.array(Image.open('/root/Workspace/humanoid/tsinghua/graspnet-baseline/doc/bottle/depth.png'))
-    workspace_mask = np.load('/root/Workspace/humanoid/tsinghua/graspnet-baseline/doc/bottle/mask.npy')
-    # intrinsic = np.array([609.765, 0.0, 322.594, 0.0, 608.391, 243.647, 0.0, 0.0, 1.0]).reshape((3, 3)) # 609.765, 0.0, 322.594, 0.0, 608.391, 243.647, 0.0, 0.0, 1.0
-    intrinsic = np.array([[637.91, 0., 639.65],
-                          [0., 637.91, 391.311],
-                          [0., 0., 1.]])
-    factor_depth = np.array([[1000.]])
+    color = np.array(Image.open('doc/example_data/color.png'), dtype=np.float32) / 255.0
+    depth = np.array(Image.open('doc/example_data/depth.png'))
+    workspace_mask = np.array(Image.open('doc/example_data/workspace_mask.png'))
+    meta = scio.loadmat('doc/example_data/meta.mat')
+    intrinsic = meta['intrinsic_matrix']
+    factor_depth = meta['factor_depth']
 
     # generate cloud
     camera = CameraInfo(1280.0, 720.0, intrinsic[0][0], intrinsic[1][1], intrinsic[0][2], intrinsic[1][2], factor_depth)  # [480,270]  [1280,720]
@@ -56,8 +56,6 @@ def get_and_process_data():
 
     # convert data
     cloud = o3d.geometry.PointCloud()
-    # cloud.points = o3d.utility.Vector3dVector(cloud_masked.astype(np.float32))
-    # cloud.colors = o3d.utility.Vector3dVector(color_masked.astype(np.float32))
     cloud.points = o3d.utility.Vector3dVector(cloud_nomask.astype(np.float32))
     cloud.colors = o3d.utility.Vector3dVector(color_nomask.astype(np.float32))
     end_points = dict()
@@ -77,8 +75,8 @@ model = GraspNet(input_feature_dim=0, num_view=300, num_angle=12, num_depth=4,
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model.to(device)
 # Load checkpoint
-# checkpoint = torch.load('logs/checkpoint_dist.tar', map_location=torch.device('cuda:0'))
-# model.load_state_dict(checkpoint['model_state_dict'])
+checkpoint = torch.load('checkpoint-rs.tar', map_location=torch.device('cuda:0'))
+model.load_state_dict(checkpoint['model_state_dict'])
 
 # torch.save(model.state_dict(), 'grasp.pth')
 model.eval()
@@ -91,14 +89,11 @@ output = model(end_points)
 # 打印输出的形状
 print("Output keys:", output.keys())
 
-# input_names = ['point_clouds', 'cloud_colors']
-# output_names = [key for key in output.keys()]
-# del output_names[1:4]
-# print(len(output_names))
-# print(len([name for name, _ in model.named_parameters() if _.requires_grad]))
 torch.onnx.register_custom_op_symbolic('aten::lift_fresh', lambda g, x: x, 11)
 with torch.no_grad():
-    torch.onnx.export(model, end_points_dict, "grasp_horizon.onnx", verbose=True, do_constant_folding=True, export_params=True, opset_version=11)  #  input_names=input_names, output_names=output_names
+    torch.onnx.export(model, end_points_dict, "grasp_horizon.onnx", 
+                      verbose=True, do_constant_folding=True, 
+                      export_params=True, opset_version=11)  #  input_names=input_names, output_names=output_names
 
 import onnx
 model_file = 'grasp_horizon.onnx'

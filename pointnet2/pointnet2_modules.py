@@ -232,17 +232,14 @@ class PointnetSAModuleVotes(nn.Module):
 
         xyz_flipped = xyz.transpose(1, 2).contiguous()
         if inds is None:
-            # TODO() 最远点采样,实现过程?
             inds = pointnet2_utils.furthest_point_sample(xyz, self.npoint)
         else:
             assert(inds.shape[1] == self.npoint)
-        # TODO() CUDA实现
         new_xyz = pointnet2_utils.gather_operation(
             xyz_flipped, inds
         ).transpose(1, 2).contiguous() if self.npoint is not None else None
 
         if not self.ret_unique_cnt:
-            ## TODO() CUDA实现, 量化时部分在CPU上
             grouped_features, grouped_xyz = self.grouper(
                 xyz, new_xyz, features
             )  # (B, C, npoint, nsample)

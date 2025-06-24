@@ -58,7 +58,7 @@ def get_camera_parameters(camera='kinect'):
         param.intrinsic.set_intrinsics(1280,720,927.17,927.37,639.5,359.5)
     return param
 
-def visAnno(dataset_root, scene_name, anno_idx, camera, num_grasp=10, th=0.3, align_to_table=True, max_width=0.067, save_folder='save_fig', show=False, per_obj=False):
+def visAnno(dataset_root, scene_name, anno_idx, camera, num_grasp=10, th=0.3, align_to_table=True, max_width=0.08, save_folder='save_fig', show=False, per_obj=False):
     '''
     Author: chenxi-wang
     
@@ -241,7 +241,7 @@ def vis6D(dataset_root, scene_name, anno_idx, camera, align_to_table=True, save_
 
 
 
-def visObjGrasp(dataset_root, obj_idx, num_grasp=10, th=0.5, max_width=0.067, save_folder='save_fig', show=False):
+def visObjGrasp(dataset_root, obj_idx, num_grasp=10, th=0.5, max_width=0.08, save_folder='save_fig', show=False):
     '''
     Author: chenxi-wang
     
@@ -378,6 +378,6 @@ if __name__ == '__main__':
     scene_name = 'scene_0000'
     anno_idx = 0
     obj_idx = 0
-    visAnno(dataset_root, scene_name, anno_idx, camera, num_grasp=1, th=0.5, align_to_table=True, max_width=0.067, save_folder='save_fig', show=False)
+    visAnno(dataset_root, scene_name, anno_idx, camera, num_grasp=1, th=0.5, align_to_table=True, max_width=0.08, save_folder='save_fig', show=False)
     vis6D(dataset_root, scene_name, anno_idx, camera, align_to_table=True, save_folder='save_fig', show=False)
     visObjGrasp(dataset_root, obj_idx, num_grasp=10, th=0.5, save_folder='save_fig', show=False)

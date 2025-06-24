@@ -1,3 +1,0 @@
-。机械臂帮我拿个橘子
-橘子	抽屉	拿	橘子	抽屉
-Orange.	The doorknob in the drawer.

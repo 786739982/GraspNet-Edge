@@ -212,7 +212,7 @@ def collision_detection(grasp_list, model_list, dexnet_models, poses, scene_poin
     '''
     height = 0.02
     depth_base = 0.02
-    finger_width = 0.023
+    finger_width = 0.01
     collision_mask_list = list()
     num_models = len(model_list)
     empty_mask_list = list()

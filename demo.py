@@ -23,11 +23,10 @@ from graspnet import GraspNet, pred_decode
 from graspnet_dataset import GraspNetDataset
 from collision_detector import ModelFreeCollisionDetector
 from data_utils import CameraInfo, create_point_cloud_from_depth_image
-from IPython import embed
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoint_path', required=True, help='Model checkpoint path')
-parser.add_argument('--num_point', type=int, default=8000, help='Point Number [default: 20000]')
+parser.add_argument('--num_point', type=int, default=20000, help='Point Number [default: 20000]')
 parser.add_argument('--num_view', type=int, default=300, help='View Number [default: 300]')
 parser.add_argument('--collision_thresh', type=float, default=0.01, help='Collision Threshold in collision detection [default: 0.01]')
 parser.add_argument('--voxel_size', type=float, default=0.01, help='Voxel Size to process point clouds before collision detection [default: 0.01]')
@@ -41,8 +40,8 @@ def get_net():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     net.to(device)
     # Load checkpoint
-    checkpoint = torch.load(cfgs.checkpoint_path, map_location='cuda:0')
-    #net.load_state_dict(checkpoint['model_state_dict']) # by haiyong
+    checkpoint = torch.load(cfgs.checkpoint_path)
+    net.load_state_dict(checkpoint['model_state_dict'])
     start_epoch = checkpoint['epoch']
     print("-> loaded checkpoint %s (epoch: %d)"%(cfgs.checkpoint_path, start_epoch))
     # set model to eval mode
@@ -51,34 +50,16 @@ def get_net():
 
 def get_and_process_data(data_dir):
     # load data
-    # color = np.array(Image.open(os.path.join(data_dir, 'color.png')), dtype=np.float32) / 255.0
-    # depth = np.array(Image.open(os.path.join(data_dir, 'depth.png')))
-    # workspace_mask = np.array(Image.open(os.path.join(data_dir, 'workspace_mask.png')))
-    # meta = scio.loadmat(os.path.join(data_dir, 'meta.mat'))
-    # intrinsic = meta['intrinsic_matrix']
-    # factor_depth = meta['factor_depth']
-
-    #color = np.array(Image.open('/home/hongrui/graspnet-baseline/doc/bottle/bottle.png'), dtype=np.float32) / 255.0
-    color = np.array(Image.open('doc/bottle/bottle.png'), dtype=np.float32) / 255.0
-    #depth = np.array(Image.open('/home/hongrui/graspnet-baseline/doc/bottle/depth.png'))
-    depth = np.array(Image.open('doc/bottle/depth.png'))
-    workspace_mask = np.array(Image.open('doc/example_data/workspace_mask.png'))
-    print(workspace_mask)
-    print(workspace_mask.shape)
-    workspace_mask = np.load('doc/bottle/mask.npy')
-    # intrinsic = np.array([609.765, 0.0, 322.594, 0.0, 608.391, 243.647, 0.0, 0.0, 1.0]).reshape((3, 3)) # 609.765, 0.0, 322.594, 0.0, 608.391, 243.647, 0.0, 0.0, 1.0
-    intrinsic = np.array([[637.91, 0., 639.65],
-                          [0., 637.91, 391.311],
-                          [0., 0., 1.]])
-    factor_depth = np.array([[1000.]])
+    color = np.array(Image.open(os.path.join(data_dir, 'color.png')), dtype=np.float32) / 255.0
+    depth = np.array(Image.open(os.path.join(data_dir, 'depth.png')))
+    workspace_mask = np.array(Image.open(os.path.join(data_dir, 'workspace_mask.png')))
+    meta = scio.loadmat(os.path.join(data_dir, 'meta.mat'))
+    intrinsic = meta['intrinsic_matrix']
+    factor_depth = meta['factor_depth']
 
     # generate cloud
-    camera = CameraInfo(1280.0, 720.0, intrinsic[0][0], intrinsic[1][1], intrinsic[0][2], intrinsic[1][2], factor_depth)  # [480,270]  [1280,720]
+    camera = CameraInfo(1280.0, 720.0, intrinsic[0][0], intrinsic[1][1], intrinsic[0][2], intrinsic[1][2], factor_depth)
     cloud = create_point_cloud_from_depth_image(depth, camera, organized=True)
-    cloud_nomask = cloud
-    color_nomask = color
-    cloud_nomask = cloud_nomask[depth > 0]
-    color_nomask = color_nomask[depth > 0]
 
     # get valid points
     mask = (workspace_mask & (depth > 0))
@@ -97,16 +78,14 @@ def get_and_process_data(data_dir):
 
     # convert data
     cloud = o3d.geometry.PointCloud()
-    # cloud.points = o3d.utility.Vector3dVector(cloud_masked.astype(np.float32))
-    # cloud.colors = o3d.utility.Vector3dVector(color_masked.astype(np.float32))
-    cloud.points = o3d.utility.Vector3dVector(cloud_nomask.astype(np.float32))
-    cloud.colors = o3d.utility.Vector3dVector(color_nomask.astype(np.float32))
+    cloud.points = o3d.utility.Vector3dVector(cloud_masked.astype(np.float32))
+    cloud.colors = o3d.utility.Vector3dVector(color_masked.astype(np.float32))
     end_points = dict()
     cloud_sampled = torch.from_numpy(cloud_sampled[np.newaxis].astype(np.float32))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     cloud_sampled = cloud_sampled.to(device)
-    end_points['point_clouds'] = cloud_sampled # shape[1, 20000, 3]
-    #end_points['cloud_colors'] = color_sampled # shape[20000, 3]
+    end_points['point_clouds'] = cloud_sampled
+    end_points['cloud_colors'] = color_sampled
 
     return end_points, cloud
 
@@ -127,20 +106,17 @@ def collision_detection(gg, cloud):
 
 def vis_grasps(gg, cloud):
     gg.nms()
-    if cfgs.collision_thresh > 0:
-        gg = collision_detection(gg, np.array(cloud.points))
     gg.sort_by_score()
     gg = gg[:50]
-    print(gg[0:2])
-    grippers = gg[0:2].to_open3d_geometry_list()
+    grippers = gg.to_open3d_geometry_list()
     o3d.visualization.draw_geometries([cloud, *grippers])
 
 def demo(data_dir):
     net = get_net()
     end_points, cloud = get_and_process_data(data_dir)
     gg = get_grasps(net, end_points)
-    # if cfgs.collision_thresh > 0:
-    #     gg = collision_detection(gg, np.array(cloud.points))
+    if cfgs.collision_thresh > 0:
+        gg = collision_detection(gg, np.array(cloud.points))
     vis_grasps(gg, cloud)
 
 if __name__=='__main__':

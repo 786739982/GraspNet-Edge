@@ -86,7 +86,7 @@ optimizer = optim.Adam(net.parameters(), lr=cfgs.learning_rate, weight_decay=cfg
 it = -1 # for the initialize value of `LambdaLR` and `BNMomentumScheduler`
 start_epoch = 0
 if CHECKPOINT_PATH is not None and os.path.isfile(CHECKPOINT_PATH):
-    checkpoint = torch.load(CHECKPOINT_PATH, map_location=torch.device('cuda:0'))
+    checkpoint = torch.load(CHECKPOINT_PATH)
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     start_epoch = checkpoint['epoch']
@@ -196,7 +196,7 @@ def train(start_epoch):
     global EPOCH_CNT 
     min_loss = 1e10
     loss = 0
-    for epoch in range(start_epoch, cfgs.max_epoch+1):
+    for epoch in range(start_epoch, cfgs.max_epoch):
         EPOCH_CNT = epoch
         log_string('**** EPOCH %03d ****' % (epoch))
         log_string('Current learning rate: %f'%(get_current_lr(epoch)))

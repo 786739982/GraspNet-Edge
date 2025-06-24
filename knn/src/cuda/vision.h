@@ -1,6 +1,5 @@
 #pragma once
 #include <torch/extension.h>
-// #include <THC/THC.h>
 #include <ATen/cuda/CUDAContext.h>
 #include <ATen/cuda/CUDAEvent.h>
 

@@ -32,16 +32,11 @@ class ApproachNet(nn.Module):
         super().__init__()
         self.num_view = num_view
         self.in_dim = seed_feature_dim
-        # self.conv1 = nn.Conv1d(self.in_dim, self.in_dim, 1)
-        # self.conv2 = nn.Conv1d(self.in_dim, 2+self.num_view, 1)
-        # self.conv3 = nn.Conv1d(2+self.num_view, 2+self.num_view, 1)
-        # self.bn1 = nn.BatchNorm1d(self.in_dim)
-        # self.bn2 = nn.BatchNorm1d(2+self.num_view)
-        self.conv1 = nn.Conv2d(self.in_dim, self.in_dim, 1)
-        self.conv2 = nn.Conv2d(self.in_dim, 2+self.num_view, 1)
-        self.conv3 = nn.Conv2d(2+self.num_view, 2+self.num_view, 1)
-        self.bn1 = nn.BatchNorm2d(self.in_dim)
-        self.bn2 = nn.BatchNorm2d(2+self.num_view)
+        self.conv1 = nn.Conv1d(self.in_dim, self.in_dim, 1)
+        self.conv2 = nn.Conv1d(self.in_dim, 2+self.num_view, 1)
+        self.conv3 = nn.Conv1d(2+self.num_view, 2+self.num_view, 1)
+        self.bn1 = nn.BatchNorm1d(self.in_dim)
+        self.bn2 = nn.BatchNorm1d(2+self.num_view)
 
     def forward(self, seed_xyz, seed_features, end_points):
         """ Forward pass.
@@ -57,10 +52,9 @@ class ApproachNet(nn.Module):
                 end_points: [dict]
         """
         B, num_seed, _ = seed_xyz.size()
-        seed_features = seed_features.unsqueeze(-1)
         features = F.relu(self.bn1(self.conv1(seed_features)), inplace=True)
         features = F.relu(self.bn2(self.conv2(features)), inplace=True)
-        features = self.conv3(features).squeeze(-1)
+        features = self.conv3(features)
         objectness_score = features[:, :2, :] # (B, 2, num_seed)
         view_score = features[:, 2:2+self.num_view, :].transpose(1,2).contiguous() # (B, num_seed, num_view)
         end_points['objectness_score'] = objectness_score
@@ -68,14 +62,13 @@ class ApproachNet(nn.Module):
 
         # print(view_score.min(), view_score.max(), view_score.mean())
         top_view_scores, top_view_inds = torch.max(view_score, dim=2) # (B, num_seed)
-        top_view_inds_ = top_view_inds.reshape(B, num_seed, 1, 1).expand(-1, -1, -1, 3).contiguous()
-        template_views = generate_grasp_views(self.num_view).to(features.device) # (num_view, 3) TODO()可加速
-        template_views = template_views.reshape(1, 1, self.num_view, 3).expand(B, num_seed, -1, -1).contiguous() #(B, num_seed, num_view, 3)
+        top_view_inds_ = top_view_inds.view(B, num_seed, 1, 1).expand(-1, -1, -1, 3).contiguous()
+        template_views = generate_grasp_views(self.num_view).to(features.device) # (num_view, 3)
+        template_views = template_views.view(1, 1, self.num_view, 3).expand(B, num_seed, -1, -1).contiguous() #(B, num_seed, num_view, 3)
         vp_xyz = torch.gather(template_views, 2, top_view_inds_).squeeze(2) #(B, num_seed, 3)
-        vp_xyz_ = vp_xyz.reshape(-1, 3)
+        vp_xyz_ = vp_xyz.view(-1, 3)
         batch_angle = torch.zeros(vp_xyz_.size(0), dtype=vp_xyz.dtype, device=vp_xyz.device)
-        # vp_rot = batch_viewpoint_params_to_matrix(-vp_xyz_, batch_angle).reshape(B, num_seed, 3, 3)
-        vp_rot = batch_viewpoint_params_to_matrix(torch.sub(0, vp_xyz_), batch_angle).reshape(B, num_seed, 3, 3)
+        vp_rot = batch_viewpoint_params_to_matrix(-vp_xyz_, batch_angle).view(B, num_seed, 3, 3)
         end_points['grasp_top_view_inds'] = top_view_inds
         end_points['grasp_top_view_score'] = top_view_scores
         end_points['grasp_top_view_xyz'] = vp_xyz
@@ -136,7 +129,7 @@ class CloudCrop(nn.Module):
                 pointcloud, seed_xyz, vp_rot
             )) # (batch_size, feature_dim, num_seed, nsample)
         grouped_features = torch.stack(grouped_features, dim=3) # (batch_size, feature_dim, num_seed, num_depth, nsample)
-        grouped_features = grouped_features.reshape(B, -1, num_seed*num_depth, self.nsample) # (batch_size, feature_dim, num_seed*num_depth, nsample)
+        grouped_features = grouped_features.view(B, -1, num_seed*num_depth, self.nsample) # (batch_size, feature_dim, num_seed*num_depth, nsample)
 
         vp_features = self.mlps(
             grouped_features
@@ -144,7 +137,7 @@ class CloudCrop(nn.Module):
         vp_features = F.max_pool2d(
             vp_features, kernel_size=[1, vp_features.size(3)]
         ) # (batch_size, mlps[-1], num_seed*num_depth, 1)
-        vp_features = vp_features.reshape(B, -1, num_seed, num_depth)
+        vp_features = vp_features.view(B, -1, num_seed, num_depth)
         return vp_features
 
         
@@ -167,16 +160,11 @@ class OperationNet(nn.Module):
         self.num_angle = num_angle
         self.num_depth = num_depth
 
-        # self.conv1 = nn.Conv1d(256, 128, 1)
-        # self.conv2 = nn.Conv1d(128, 128, 1)
-        # self.conv3 = nn.Conv1d(128, 3*num_angle, 1)
-        # self.bn1 = nn.BatchNorm1d(128)
-        # self.bn2 = nn.BatchNorm1d(128)
-        self.conv1 = nn.Conv2d(256, 128, 1)
-        self.conv2 = nn.Conv2d(128, 128, 1)
-        self.conv3 = nn.Conv2d(128, 3*num_angle, 1)
-        self.bn1 = nn.BatchNorm2d(128)
-        self.bn2 = nn.BatchNorm2d(128)
+        self.conv1 = nn.Conv1d(256, 128, 1)
+        self.conv2 = nn.Conv1d(128, 128, 1)
+        self.conv3 = nn.Conv1d(128, 3*num_angle, 1)
+        self.bn1 = nn.BatchNorm1d(128)
+        self.bn2 = nn.BatchNorm1d(128)
 
     def forward(self, vp_features, end_points):
         """ Forward pass.
@@ -190,11 +178,11 @@ class OperationNet(nn.Module):
                 end_points: [dict]
         """
         B, _, num_seed, num_depth = vp_features.size()
-        vp_features = vp_features.reshape(B, -1, num_seed*num_depth).unsqueeze(-1)
+        vp_features = vp_features.view(B, -1, num_seed*num_depth)
         vp_features = F.relu(self.bn1(self.conv1(vp_features)), inplace=True)
         vp_features = F.relu(self.bn2(self.conv2(vp_features)), inplace=True)
-        vp_features = self.conv3(vp_features).squeeze(-1)
-        vp_features = vp_features.reshape(B, -1, num_seed, num_depth)
+        vp_features = self.conv3(vp_features)
+        vp_features = vp_features.view(B, -1, num_seed, num_depth)
 
         # split prediction
         end_points['grasp_score_pred'] = vp_features[:, 0:self.num_angle]
@@ -217,16 +205,11 @@ class ToleranceNet(nn.Module):
         # Output:
         # tolerance (num_angle)
         super().__init__()
-        # self.conv1 = nn.Conv1d(256, 128, 1)
-        # self.conv2 = nn.Conv1d(128, 128, 1)
-        # self.conv3 = nn.Conv1d(128, num_angle, 1)
-        # self.bn1 = nn.BatchNorm1d(128)
-        # self.bn2 = nn.BatchNorm1d(128)
-        self.conv1 = nn.Conv2d(256, 128, 1)
-        self.conv2 = nn.Conv2d(128, 128, 1)
-        self.conv3 = nn.Conv2d(128, num_angle, 1)
-        self.bn1 = nn.BatchNorm2d(128)
-        self.bn2 = nn.BatchNorm2d(128)
+        self.conv1 = nn.Conv1d(256, 128, 1)
+        self.conv2 = nn.Conv1d(128, 128, 1)
+        self.conv3 = nn.Conv1d(128, num_angle, 1)
+        self.bn1 = nn.BatchNorm1d(128)
+        self.bn2 = nn.BatchNorm1d(128)
 
     def forward(self, vp_features, end_points):
         """ Forward pass.
@@ -240,10 +223,10 @@ class ToleranceNet(nn.Module):
                 end_points: [dict]
         """
         B, _, num_seed, num_depth = vp_features.size()
-        vp_features = vp_features.reshape(B, -1, num_seed*num_depth).unsqueeze(-1)
+        vp_features = vp_features.view(B, -1, num_seed*num_depth)
         vp_features = F.relu(self.bn1(self.conv1(vp_features)), inplace=True)
         vp_features = F.relu(self.bn2(self.conv2(vp_features)), inplace=True)
-        vp_features = self.conv3(vp_features).squeeze(-1)
-        vp_features = vp_features.reshape(B, -1, num_seed, num_depth)
+        vp_features = self.conv3(vp_features)
+        vp_features = vp_features.view(B, -1, num_seed, num_depth)
         end_points['grasp_tolerance_pred'] = vp_features
         return end_points

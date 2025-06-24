@@ -16,6 +16,7 @@ sys.path.append(os.path.join(ROOT_DIR, 'pointnet2'))
 sys.path.append(os.path.join(ROOT_DIR, 'utils'))
 
 from backbone import Pointnet2Backbone
+from backbone_optimized import Pointnet2Backbone
 from modules import ApproachNet, CloudCrop, OperationNet, ToleranceNet
 from loss import get_loss
 from loss_utils import GRASP_MAX_WIDTH, GRASP_MAX_TOLERANCE
@@ -73,25 +74,6 @@ class GraspNet(nn.Module):
             end_points = process_grasp_labels(end_points)
         end_points = self.grasp_generator(end_points)
         return end_points
-    
-# class GraspNet_New(nn.Module):
-#     def __init__(self, input_feature_dim=0, num_view=300, num_angle=12, num_depth=4, cylinder_radius=0.05, hmin=-0.02, hmax_list=[0.01,0.02,0.03,0.04], is_training=True):
-#         super().__init__()
-#         self.is_training = is_training
-#         self.view_estimator = GraspNetStage1(input_feature_dim, num_view)
-#         self.conv = torch.nn.Conv2d(64, 64, (1,1))
-#         with torch.no_grad():
-#             self.conv.weight.fill_(1)
-#             self.conv.bias.fill_(0)
-#         self.grasp_generator = GraspNetStage2(num_angle, num_depth, cylinder_radius, hmin, hmax_list, is_training)
-        
-#     def forward(self, end_points):
-#         end_points['x'] = self.conv(torch.ones(1,64,32,32).float().cuda())
-#         end_points = self.view_estimator(end_points)
-#         if self.is_training:
-#             end_points = process_grasp_labels(end_points)
-#         end_points = self.grasp_generator(end_points)
-#         return end_points
 
 def pred_decode(end_points):
     batch_size = len(end_points['point_clouds'])

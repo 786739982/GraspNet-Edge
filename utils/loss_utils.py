@@ -5,8 +5,8 @@
 import torch
 import numpy as np
 
-GRASP_MAX_WIDTH = 0.067
-GRASP_MAX_TOLERANCE = 0.045
+GRASP_MAX_WIDTH = 0.1
+GRASP_MAX_TOLERANCE = 0.05
 THRESH_GOOD = 0.7
 THRESH_BAD = 0.1
 
@@ -81,20 +81,15 @@ def batch_viewpoint_params_to_matrix(batch_towards, batch_angle):
     axis_x = batch_towards
     ones = torch.ones(axis_x.shape[0], dtype=axis_x.dtype, device=axis_x.device)
     zeros = torch.zeros(axis_x.shape[0], dtype=axis_x.dtype, device=axis_x.device)
-    axis_y = torch.stack([-1 * axis_x[:,1], axis_x[:,0], zeros], dim=-1)
+    axis_y = torch.stack([-axis_x[:,1], axis_x[:,0], zeros], dim=-1)
     mask_y = (torch.norm(axis_y, dim=-1) == 0)
-    # axis_y[mask_y,1] = 1
-
-    not_mask = torch.sub(0, mask_y.int()) + 1
-    axis_y[:, 1] = not_mask * axis_y[:, 1] + mask_y * 1
-
+    axis_y[mask_y,1] = 1
     axis_x = axis_x / torch.norm(axis_x, dim=-1, keepdim=True)
     axis_y = axis_y / torch.norm(axis_y, dim=-1, keepdim=True)
     axis_z = torch.cross(axis_x, axis_y)
     sin = torch.sin(batch_angle)
     cos = torch.cos(batch_angle)
-    # R1 = torch.stack([ones, zeros, zeros, zeros, cos, -sin, zeros, sin, cos], dim=-1)
-    R1 = torch.stack([ones, zeros, zeros, zeros, cos, torch.sub(0, sin), zeros, sin, cos], dim=-1)
+    R1 = torch.stack([ones, zeros, zeros, zeros, cos, -sin, zeros, sin, cos], dim=-1)
     R1 = R1.reshape([-1,3,3])
     R2 = torch.stack([axis_x, axis_y, axis_z], dim=-1)
     batch_matrix = torch.matmul(R2, R1)

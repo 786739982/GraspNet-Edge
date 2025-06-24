@@ -9,7 +9,7 @@ import scipy.io as scio
 from PIL import Image
 
 import torch
-import collections.abc as container_abcs
+from collections.abc import Container as container_abcs
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
