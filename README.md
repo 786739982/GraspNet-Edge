@@ -8,6 +8,8 @@ During the deployment of GraspNet to edge platforms, we observed that many opera
 
 To address this issue, we reimplemented these CUDA-based operators using native PyTorch operations and provided corresponding code to enable successful ONNX export.
 
+In addition, we provide parallel training code based on the DDP (Distributed Data Parallel) framework.
+
 <!-- PROJECT SHIELDS -->
 
 [![Contributors][contributors-shield]][contributors-url]
@@ -74,7 +76,7 @@ To address this issue, we reimplemented these CUDA-based operators using native 
 #### **Implementation**
 * Wrote the code in the ```pointnet2/pointnet2_modules_pytorch.py``` file, which contains operators implemented purely in PyTorch.
 * Modified the model code in ```models/backbone.py```, ```models/graspnet.py``` and ```models/modules.py```. Modifications to these files include replacing CUDA-defined operators with PyTorch-defined ones, as well as converting 1D convolutions into equivalent 2D convolutions to better adapt to the hardware characteristics of the Horizon X5 RDK edge device.
-
+* You can refer to the ```train_parallel.py``` file to see how to use DDP to train the model.
 
 
 
