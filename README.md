@@ -76,7 +76,7 @@ In addition, we provide parallel training code based on the DDP (Distributed Dat
 #### **Implementation**
 * Wrote the code in the ```pointnet2/pointnet2_modules_pytorch.py``` file, which contains operators implemented purely in PyTorch.
 * Modified the model code in ```models/backbone.py```, ```models/graspnet.py``` and ```models/modules.py```. Modifications to these files include replacing CUDA-defined operators with PyTorch-defined ones, as well as converting 1D convolutions into equivalent 2D convolutions to better adapt to the hardware characteristics of the Horizon X5 RDK edge device.
-* You can refer to the ```train_parallel.py``` file to see how to use DDP to train the model.
+* You can refer to the ```train_distributed.py``` file to see how to use DDP to train the model.
 
 
 
