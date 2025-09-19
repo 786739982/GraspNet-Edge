@@ -49,6 +49,7 @@ In addition, we provide parallel training code based on the DDP (Distributed Dat
 - [Explanation](#Explanation)
   - [Compare](#Compare)
   - [Implementation](#Implementation)
+- [Export-ONNX-Model](#Export-ONNX-Model)
 - [Author](#Author)
 - [Acknowledgements](#Acknowledgements)
 
@@ -78,6 +79,11 @@ In addition, we provide parallel training code based on the DDP (Distributed Dat
 * Modified the model code in ```models/backbone.py```, ```models/graspnet.py``` and ```models/modules.py```. Modifications to these files include replacing CUDA-defined operators with PyTorch-defined ones, as well as converting 1D convolutions into equivalent 2D convolutions to better adapt to the hardware characteristics of the Horizon X5 RDK edge device.
 * You can refer to the ```train_distributed.py``` file to see how to use DDP to train the model.
 
+
+#### Export-ONNX-Model
+```
+  python3 to_onnx.py
+```
 
 
 ### Author
