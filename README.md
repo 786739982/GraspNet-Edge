@@ -56,37 +56,37 @@ In addition, we provide parallel training code based on the DDP (Distributed Dat
 
 
 
-### Explanation
+## Explanation
 
-#### Compare
+### Compare
 
-##### Original GraspNet ONNX Model
+#### Original GraspNet ONNX Model
 <p align="center">
   <a href="https://github.com/786739982/GraspNet-Edge/">
     <img src="assets/GraspNet ONNX.png" alt="Logo" width="" height="">
   </a>
 </p>
 
-##### Our GraspNet-Edge ONNX Model (Partial)
+#### Our GraspNet-Edge ONNX Model (Partial)
 <p align="center">
   <a href="https://github.com/786739982/GraspNet-Edge/">
     <img src="assets/GraspNet-Edge ONNX.png" alt="Logo" width="" height="">
   </a>
 </p>
 
-#### **Implementation**
+### **Implementation**
 * Wrote the code in the ```pointnet2/pointnet2_modules_pytorch.py``` file, which contains operators implemented purely in PyTorch.
 * Modified the model code in ```models/backbone.py```, ```models/graspnet.py``` and ```models/modules.py```. Modifications to these files include replacing CUDA-defined operators with PyTorch-defined ones, as well as converting 1D convolutions into equivalent 2D convolutions to better adapt to the hardware characteristics of the Horizon X5 RDK edge device.
 * You can refer to the ```train_distributed.py``` file to see how to use DDP to train the model.
 
 
-#### Export-ONNX-Model
+### Export-ONNX-Model
 ```
   python3 to_onnx.py
 ```
 
 
-### Author
+## Author
 
 Hongrui Zhu 
 
@@ -99,7 +99,7 @@ vx：Hong_Rui_0226
 
 
   
-### 版权说明
+## 版权说明
 
 该项目签署了MIT 授权许可，详情请参阅 [LICENSE](https://github.com/786739982/GraspNet-Edge/blob/master/LICENSE)
 
@@ -107,7 +107,7 @@ vx：Hong_Rui_0226
 
 
 
-### Acknowledgements
+## Acknowledgements
 
 - [DISCOVERSE](https://airbots.online/)
 
